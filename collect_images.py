@@ -5,13 +5,15 @@ import requests
 from pyquery import PyQuery as pq
 
 
-def _collect_from_bing(q, num, save_dir='./'):
+def _collect_from_bing(q, start=0, num, save_dir='./'):
     """
     Search and collects images from Bing.
     Parameters
     ==========
     q : str
         search keyword
+    start : int
+        first index of images want to collect
     num : int
         number of images want to collect
     save_dir : str
@@ -31,11 +33,11 @@ def _collect_from_bing(q, num, save_dir='./'):
     }
 
     # crawl images
-    for n in range(0, num, 28):
-        params['first'] = n
+    for n in range(start, num, 28):
+        params['first'] = start
         params['count'] = 28
 
-        response = requests.get(url=url, params=params)
+        response = requests.get(url=url, params=params, timeout=10)
         html = pq(response.text)
 
         # parse links of images
@@ -57,13 +59,15 @@ def _collect_from_bing(q, num, save_dir='./'):
     print('Complete!')
 
 
-def _collect_from_google(q, num, save_dir='./'):
+def _collect_from_google(q, start=0, num, save_dir='./'):
     """
     Search and collects images from Google.
     Parameters
     ==========
     q : str
         search keyword
+    start : int
+        first index of images want to collect
     num : int
         number of images want to collect
     save_dir : str
@@ -83,10 +87,10 @@ def _collect_from_google(q, num, save_dir='./'):
     }
 
     # crawl images
-    for n in range(0, num, 20):
+    for n in range(start, num, 20):
         params['start'] = n
 
-        response = requests.get(url=url, params=params)
+        response = requests.get(url=url, params=params, timeout=10)
         html = pq(response.text)
 
         # parse links of images
@@ -108,7 +112,7 @@ def _collect_from_google(q, num, save_dir='./'):
     print('Complete!')
 
 
-def collect(from_, q, num, save_dir='./'):
+def collect(from_, q, start=0, num, save_dir='./'):
     """
     Search and collects images.
     Parameters
@@ -123,11 +127,11 @@ def collect(from_, q, num, save_dir='./'):
         directory of images want to save
     """
     if from_ == 'all':
-        _collect_from_bing(q, num, save_dir)
-        _collect_from_google(q, num, save_dir)
+        _collect_from_bing(q, start, num, save_dir)
+        _collect_from_google(q, start, num, save_dir)
     elif from_ == 'bing':
-        _collect_from_bing(q, num, save_dir)
+        _collect_from_bing(q, start, num, save_dir)
     elif from_ == 'google':
-        _collect_from_google(q, num, save_dir)
+        _collect_from_google(q, start, num, save_dir)
     else:
         raise ValueError("argument 'from_' must be one of 'all', 'bing', and 'google'.")
