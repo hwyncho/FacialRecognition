@@ -5,7 +5,7 @@ import requests
 from pyquery import PyQuery as pq
 
 
-def _collect_from_bing(q, start=0, num, save_dir='./'):
+def _collect_from_bing(q, start=0, num=28, save_dir='./'):
     """
     Search and collects images from Bing.
     Parameters
@@ -59,7 +59,7 @@ def _collect_from_bing(q, start=0, num, save_dir='./'):
     print('Complete!')
 
 
-def _collect_from_google(q, start=0, num, save_dir='./'):
+def _collect_from_google(q, start=0, num=20, save_dir='./'):
     """
     Search and collects images from Google.
     Parameters
@@ -112,7 +112,7 @@ def _collect_from_google(q, start=0, num, save_dir='./'):
     print('Complete!')
 
 
-def collect(from_, q, start=0, num, save_dir='./'):
+def collect(from_, q, start=0, num=20, save_dir='./'):
     """
     Search and collects images.
     Parameters
