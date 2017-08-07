@@ -23,7 +23,7 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
     if not os.path.exists('{0}/{1}'.format(save_dir, q)):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
-    a = int(math.log10(num)) + 1
+    a = int(math.log10(stop)) + 1
 
     url = 'https://www.bing.com/images/search'
     params = {
@@ -77,7 +77,7 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
     if not os.path.exists('{0}/{1}'.format(save_dir, q)):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
-    a = int(math.log10(num)) + 1
+    a = int(math.log10(stop)) + 1
 
     url = 'https://www.google.com/search'
     params = {
