@@ -1,8 +1,10 @@
 import math
 import os
-import re
 import requests
 from pyquery import PyQuery as pq
+
+
+_TIMEOUT = 10
 
 
 def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
@@ -24,6 +26,7 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
     a = int(math.log10(stop)) + 1
+    save_count = 0
 
     url = 'https://www.bing.com/images/search'
     params = {
@@ -37,7 +40,7 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
         params['first'] = n
         params['count'] = 28
 
-        response = requests.get(url=url, params=params, timeout=10)
+        response = requests.get(url=url, params=params, timeout=_TIMEOUT)
         html = pq(response.text)
 
         # parse links of images
@@ -48,10 +51,16 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
         if len(links) > 0:
             # save images
             for (i, link) in enumerate(links):
-                img = requests.get(url=link).content
-                file_name = str(n + i).zfill(a)
-                with open('{0}/{1}/bing_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
-                    f.write(img)
+                try:
+                    img = requests.get(url=link, timeout=_TIMEOUT).content
+
+                    file_name = str(n + i).zfill(a)
+                    with open('{0}/{1}/bing_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
+                        f.write(img)
+
+                    save_count += 1
+                except:
+                    pass
             print('Number of images saved is : {}'.format(n + len(links)))
         else:
             break
@@ -78,6 +87,7 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
     a = int(math.log10(stop)) + 1
+    save_count = 0
 
     url = 'https://www.google.com/search'
     params = {
@@ -90,7 +100,7 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
     for n in range(start, stop, 20):
         params['start'] = n
 
-        response = requests.get(url=url, params=params, timeout=10)
+        response = requests.get(url=url, params=params, timeout=_TIMEOUT)
         html = pq(response.text)
 
         # parse links of images
@@ -101,10 +111,16 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
         if len(links) > 0:
             # save images
             for (i, link) in enumerate(links):
-                img = requests.get(url=link).content
-                file_name = str(n + i).zfill(a)
-                with open('{0}/{1}/google_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
-                    f.write(img)
+                try:
+                    img = requests.get(url=link, timeout=_TIMEOUT).content
+
+                    file_name = str(n + i).zfill(a)
+                    with open('{0}/{1}/google_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
+                        f.write(img)
+
+                    save_count += 1
+                except:
+                    pass
             print('Number of images saved is : {}'.format(n + len(links)))
         else:
             break
