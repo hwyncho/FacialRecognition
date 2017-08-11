@@ -61,7 +61,10 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
                     save_count += 1
                 except:
                     pass
-            print('Number of images saved is : {}'.format(n + len(links)))
+            print('Number of images saved is : {}'.format(save_count))
+
+            if len(links) < 28:
+                break
         else:
             break
 
@@ -121,7 +124,7 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
                     save_count += 1
                 except:
                     pass
-            print('Number of images saved is : {}'.format(n + len(links)))
+            print('Number of images saved is : {}'.format(save_count))
         else:
             break
 
