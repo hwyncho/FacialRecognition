@@ -25,9 +25,6 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
     if not os.path.exists('{0}/{1}'.format(save_dir, q)):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
-    a = int(math.log10(stop)) + 1
-    save_count = 0
-
     url = 'https://www.bing.com/images/search'
     params = {
         'q':q,
@@ -35,7 +32,8 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
         'qft':'+filterui:face-face'
     }
 
-    # crawl images
+    # crawl links of images
+    links = []
     for n in range(start, stop, 28):
         params['first'] = n
         params['count'] = 28
@@ -44,31 +42,30 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
         html = pq(response.text)
 
         # parse links of images
-        links = []
+        count = 0
         for item in html('#main .row .item .thumb').items():
             links.append(item.attr('href'))
+            count += 1
 
-        if len(links) > 0:
-            # save images
-            for (i, link) in enumerate(links):
-                try:
-                    img = requests.get(url=link, timeout=_TIMEOUT).content
-
-                    file_name = str(n + i).zfill(a)
-                    with open('{0}/{1}/bing_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
-                        f.write(img)
-
-                    save_count += 1
-                except:
-                    pass
-            print('Number of images saved is : {}'.format(save_count))
-
-            if len(links) < 28:
-                break
-        else:
+        if count < 28:
             break
 
-    print('Complete!')
+    # save images
+    a = int(math.log10(stop)) + 1
+    save_count = 0
+    if len(links) > 0:
+        for (i, link) in enumerate(links):
+            try:
+                img = requests.get(url=link, timeout=_TIMEOUT).content
+            except:
+                continue
+
+            file_name = str(i).zfill(a)
+            with open('{0}/{1}/bing_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
+                f.write(img)
+            save_count += 1
+
+    print('Number of images saved is : {}'.format(save_count))
 
 
 def _collect_from_google(q, start=0, stop=20, save_dir='./'):
@@ -89,9 +86,6 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
     if not os.path.exists('{0}/{1}'.format(save_dir, q)):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
-    a = int(math.log10(stop)) + 1
-    save_count = 0
-
     url = 'https://www.google.com/search'
     params = {
         'q':q,
@@ -99,7 +93,8 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
         'tbs':'itp:face'
     }
 
-    # crawl images
+    # crawl links of images
+    links = []
     for n in range(start, stop, 20):
         params['start'] = n
 
@@ -107,29 +102,25 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
         html = pq(response.text)
 
         # parse links of images
-        links = []
         for item in html('#ires tr a img').items():
             links.append(item.attr('src'))
 
-        if len(links) > 0:
-            # save images
-            for (i, link) in enumerate(links):
-                try:
-                    img = requests.get(url=link, timeout=_TIMEOUT).content
+    # save images
+    a = int(math.log10(stop)) + 1
+    save_count = 0
+    if len(links) > 0:
+        for (i, link) in enumerate(links):
+            try:
+                img = requests.get(url=link, timeout=_TIMEOUT).content
+            except:
+                continue
 
-                    file_name = str(n + i).zfill(a)
-                    with open('{0}/{1}/google_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
-                        f.write(img)
+            file_name = str(i).zfill(a)
+            with open('{0}/{1}/google_{2}.jpg'.format(save_dir, q, file_name), 'wb') as f:
+                f.write(img)
+            save_count += 1
 
-                    save_count += 1
-                except:
-                    pass
-            print('Number of images saved is : {}'.format(save_count))
-        else:
-            break
-
-    print('Complete!')
-
+    print('Number of images saved is : {}'.format(save_count))
 
 def collect(from_, q, start=0, stop=20, save_dir='./'):
     """
