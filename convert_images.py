@@ -18,15 +18,24 @@ def _make_list(sampling=None):
     set_type_list = list(IMAGES_DIR.keys())
     set_type_list.sort()
 
-    class_list = os.listdir(IMAGES_DIR['train'])
+    # list of class name
+    class_list = []
+    for class_name in os.listdir(IMAGES_DIR['train']):
+        if not class_name.startswith('.'):
+            class_list.append(class_name)
     class_list.sort()
 
     datasets = {}
     for set_type in set_type_list:
         datasets[set_type] = {}
         for class_ in class_list:
-            image_list = os.listdir('{0}/{1}'.format(IMAGES_DIR[set_type], class_))
+            # list of image file name
+            image_list = []
+            for image_name in os.listdir('{0}/{1}'.format(IMAGES_DIR[set_type], class_)):
+                if image_name.endswith('.jpg') or image_name.endswith('.png'):
+                    image_list.append(image_name)
             image_list.sort()
+
             datasets[set_type][class_] = image_list
 
     if not sampling:
@@ -198,3 +207,5 @@ def convert(sampling=None, add_transpose=False, save_dir='./Datasets'):
     data_list = _make_list(sampling)
     datasets = _read_dataset(data_list, add_transpose)
     _save_dataset(datasets, save_dir)
+
+    print('Convert Dataset complete!')

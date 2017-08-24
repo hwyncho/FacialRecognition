@@ -4,7 +4,7 @@ def _has_path(path):
     return os.path.exists(path)
 
 
-def load_dataset(path='./Datasets.zip', balanced=False):
+def load_dataset(path='./Datasets.zip'):
     """
     Load dataset and Return
 
@@ -56,10 +56,15 @@ def load_dataset(path='./Datasets.zip', balanced=False):
         datsets = Datasets()
 
         datasets_zip = zipfile.ZipFile(path)
-        datasets_zip.extractall('./Datasets')
+        datasets_zip.extractall('./')
+        datasets_zip.close()
 
-        dataset_list = os.listdir('./Datasets')
+        dataset_list = []
+        for dataset_name in os.listdir('./Datasets'):
+            if dataset_name.endswith('.json'):
+                dataset_list.append(dataset_name)
         dataset_list.sort()
+
         for dataset in dataset_list:
             with open('./Datasets/{}'.format(dataset), 'r', encoding='utf-8') as f:
                 loaded_json = json.load(f)
@@ -81,6 +86,8 @@ def load_dataset(path='./Datasets.zip', balanced=False):
             os.remove('./Datasets/{}'.format(dataset))
         os.removedirs('./Datasets')
 
+        print('Dataset Load complete!')
+
         return datsets
     else:
-        print('Error')
+        print("The path '{}' does not exist.".format(path))
