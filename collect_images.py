@@ -1,15 +1,10 @@
-import math
-import os
-import requests
-from pyquery import PyQuery as pq
-
-
 _TIMEOUT = 10
 
 
 def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
     """
     Search and collects images from Bing.
+
     Parameters
     ==========
     q : str
@@ -21,15 +16,20 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
     save_dir : str
         directory of images want to save
     """
+    import math
+    import os
+    import requests
+    from pyquery import PyQuery as pq
+
     # check the directory exists.
     if not os.path.exists('{0}/{1}'.format(save_dir, q)):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
     url = 'https://www.bing.com/images/search'
     params = {
-        'q':q,
-        'form':'A',
-        'qft':'+filterui:face-face'
+        'q': q,
+        'form': 'A',
+        'qft': '+filterui:face-face'
     }
 
     # crawl links of images
@@ -71,6 +71,7 @@ def _collect_from_bing(q, start=0, stop=28, save_dir='./'):
 def _collect_from_google(q, start=0, stop=20, save_dir='./'):
     """
     Search and collects images from Google.
+
     Parameters
     ==========
     q : str
@@ -82,15 +83,20 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
     save_dir : str
         directory of images want to save
     """
+    import math
+    import os
+    import requests
+    from pyquery import PyQuery as pq
+
     # check the directory exists.
     if not os.path.exists('{0}/{1}'.format(save_dir, q)):
         os.makedirs('{0}/{1}'.format(save_dir, q))
 
     url = 'https://www.google.com/search'
     params = {
-        'q':q,
-        'tbm':'isch',
-        'tbs':'itp:face'
+        'q': q,
+        'tbm': 'isch',
+        'tbs': 'itp:face'
     }
 
     # crawl links of images
@@ -121,6 +127,7 @@ def _collect_from_google(q, start=0, stop=20, save_dir='./'):
             save_count += 1
 
     print('Number of images saved is : {}'.format(save_count))
+
 
 def collect(from_, q, start=0, stop=20, save_dir='./'):
     """
