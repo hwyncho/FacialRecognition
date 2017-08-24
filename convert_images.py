@@ -47,7 +47,7 @@ def _make_list(sampling=None):
 
             temp = []
             for _ in range(int(max_ / min_)):
-                temp.append(datasets['train'][class_list[idx]])
+                temp += datasets['train'][class_list[idx]]
             datasets['train'][class_list[idx]] = temp
 
             min_ = min(test_count)
@@ -56,7 +56,7 @@ def _make_list(sampling=None):
 
             temp = []
             for _ in range(int(max_ / min_)):
-                temp.append(datasets['test'][class_list[idx]])
+                temp += datasets['test'][class_list[idx]]
             datasets['test'][class_list[idx]] = temp
         elif sampling == 'under':
             idx = min(train_count)
