@@ -106,7 +106,7 @@ def _read_dataset(data_list, add_transpose=False):
                 for y in range(height):
                     for x in range(width):
                         image.append(
-                            opened_image.getpixel((y, x))
+                            opened_image.getpixel((x, y))
                         )
 
                 label = [0 for _ in range(class_num)]
