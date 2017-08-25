@@ -21,6 +21,7 @@ def _max_pool_2x2(x):
 
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
+
 class Cnn:
     def __init__(self):
         self._datasets = None
@@ -29,7 +30,7 @@ class Cnn:
         self._image_size = None
         self._class_num = None
         self._LOAD_FLAG = False
-        self._model = None
+        self._MODEL_FLAG = False
         self._epoch = 10
         self._batch_size = 100
         self._device = 'cpu'
@@ -44,15 +45,19 @@ class Cnn:
         self._class_num = len(self._datasets.train.labels[0])
         self._LOAD_FLAG = True
 
-    def load_model(self, model_path='./Model.json'):
-        import json
+    def load_model(self, sess, model_path='./Model.meta'):
         import os
+        import tensorflow as tf
 
         if os.path.exists(model_path):
-            with open(model_path, 'r', encoding='utf-8') as f:
-                self._model = json.load(f)
+            model_restorer = tf.train.import_meta_graph(model_path)
+            model_restorer.restore(sess, tf.train.latest_checkpoint('./'))
+
+            self._MODEL_FLAG = True
+
+            print("Model save in '{}'".format('./Model.meta'))
         else:
-            self._model = None
+            print('Error')
 
     def set_epoch(self, epoch=10):
         self._epoch = epoch
@@ -71,7 +76,6 @@ class Cnn:
             print('Please Load Dataset by load_dataset(path).')
             return
 
-        import json
         import numpy as np
         import tensorflow as tf
 
@@ -146,20 +150,19 @@ class Cnn:
                 batch_x, batch_y = self._datasets.test.next_batch(self._batch_size)
                 sess.run(accuracy, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
 
-        self._model = dict()
-        self._model['W_conv1'] = W_conv1
-        self._model['b_conv1'] = b_conv1
-        self._model['W_conv2'] = W_conv2
-        self._model['b_conv2'] = b_conv2
-        self._model['W_conv3'] = W_conv3
-        self._model['b_conv3'] = b_conv3
-        self._model['W_fc1'] = W_fc1
-        self._model['b_fc1'] = b_fc1
-        self._model['W_fc2'] = W_fc2
-        self._model['b_fc2'] = b_fc2
+            model_param_list = [
+                W_conv1, b_conv1,
+                W_conv2, b_conv2,
+                W_conv3, b_conv3,
+                W_fc1, b_fc1,
+                W_fc2, b_fc2
+            ]
+            model_saver = tf.train.Saver(model_param_list)
+            model_saver.save(sess, './Model.meta')
 
-        with open('./Model.json', 'w', encoding='utf-8') as f:
-            json.dump(self._model, f)
+            self._MODEL_FLAG = True
+
+            print("Model save to '{}'".format('./Model.meta'))
 
     def query(self, image, model_path=None):
         if not model_path:
