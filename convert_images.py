@@ -4,13 +4,13 @@ IMAGES_DIR = {
 }
 
 
-def _has_path(path='./Datasets.zip'):
+def _has_path(path):
     import os
 
     return os.path.exists(path)
 
 
-def _make_list(sampling=None):
+def _make_list(sampling):
     import os
     import random
     import numpy as np
@@ -81,7 +81,7 @@ def _make_list(sampling=None):
     return datasets
 
 
-def _read_dataset(data_list, add_transpose=False):
+def _read_dataset(data_list, add_transpose):
     import random
     from PIL import Image
 
@@ -158,7 +158,7 @@ def _read_dataset(data_list, add_transpose=False):
     return datasets
 
 
-def _save_dataset(dataset, save_dir='./Datasets'):
+def _save_dataset(dataset, save_dir):
     import json
     import os
     import zipfile

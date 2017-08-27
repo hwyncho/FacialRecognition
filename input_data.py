@@ -53,6 +53,9 @@ def load_dataset(path='./Datasets.zip'):
             self.test = Dataset()
 
     if _has_path(path):
+        par_dir = os.path.split(path)
+        temp_dir = '{}/Datasets'.format(par_dir[0])
+
         datsets = Datasets()
 
         datasets_zip = zipfile.ZipFile(path)
@@ -60,13 +63,13 @@ def load_dataset(path='./Datasets.zip'):
         datasets_zip.close()
 
         dataset_list = []
-        for dataset_name in os.listdir('./Datasets'):
+        for dataset_name in os.listdir(temp_dir):
             if dataset_name.endswith('.json'):
                 dataset_list.append(dataset_name)
         dataset_list.sort()
 
         for dataset in dataset_list:
-            with open('./Datasets/{}'.format(dataset), 'r', encoding='utf-8') as f:
+            with open('{0}/{1}'.format(temp_dir, dataset), 'r', encoding='utf-8') as f:
                 loaded_json = json.load(f)
 
             shuffle(loaded_json)
@@ -83,8 +86,8 @@ def load_dataset(path='./Datasets.zip'):
                         label=data['label']
                     )
 
-            os.remove('./Datasets/{}'.format(dataset))
-        os.removedirs('./Datasets')
+            os.remove('{0}/{1}'.format(temp_dir, dataset))
+        os.removedirs(temp_dir)
 
         print('Dataset Load complete!')
 
