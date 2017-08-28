@@ -171,21 +171,19 @@ def _save_dataset(dataset, save_dir):
 
     for set_type in set_type_list:
         if str(set_type).lower() == 'train':
-            with open('{0}/{1}'.format(save_dir, 'train.json'), 'w', encoding='utf-8') as f:
-                json.dump(dataset[set_type], f)
+            f = open('{0}/{1}'.format(save_dir, 'train.json'), 'w', encoding='utf-8')
         elif str(set_type).lower() == 'test':
-            with open('{0}/{1}'.format(save_dir, 'test.json'), 'w', encoding='utf-8') as f:
-                json.dump(dataset[set_type], f)
+            f = open('{0}/{1}'.format(save_dir, 'test.json'), 'w', encoding='utf-8')
+
+        json.dump(dataset[set_type], f)
+        f.close()
 
     datasets_zip = zipfile.ZipFile('{0}/{1}'.format(save_dir, 'Datasets.zip'), 'w')
 
-    for folder, subfolders, files in os.walk(save_dir):
-        for f in files:
-            if f.endswith('.json'):
-                datasets_zip.write(
-                    os.path.join(folder, f),
-                    compress_type=zipfile.ZIP_DEFLATED
-                )
+    os.chdir(save_dir)
+    for f in os.listdir(save_dir):
+        if f.endswith('.json'):
+            datasets_zip.write(f, compress_type=zipfile.ZIP_DEFLATED)
 
     datasets_zip.close()
 

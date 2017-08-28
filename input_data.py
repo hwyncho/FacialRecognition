@@ -59,7 +59,7 @@ def load_dataset(path='./Datasets.zip'):
         datsets = Datasets()
 
         datasets_zip = zipfile.ZipFile(path)
-        datasets_zip.extractall('./')
+        datasets_zip.extractall(temp_dir)
         datasets_zip.close()
 
         dataset_list = []
