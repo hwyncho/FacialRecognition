@@ -224,7 +224,7 @@ class Cnn:
             keep_prob = tf.placeholder(tf.float32, name='keep_prob')
             h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='h_fc1_drop')
 
-            y_conv = tf.add(tf.matmul(h_fc1_drop, W_fc2), b_fc2, name='y_conv')
+            y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2, name='y_conv')
 
             cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=y_conv))
             train_step = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cross_entropy)
