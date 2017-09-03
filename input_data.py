@@ -21,9 +21,10 @@ def load_dataset(path='./Datasets.zip'):
         loaded dataset
     """
     import json
+    import random
+    from random import shuffle
     import os
     import zipfile
-    from random import shuffle
 
     class Dataset:
         def __init__(self):
@@ -72,6 +73,7 @@ def load_dataset(path='./Datasets.zip'):
             with open('{0}/{1}'.format(temp_dir, dataset), 'r', encoding='utf-8') as f:
                 loaded_json = json.load(f)
 
+            random.seed(777)
             shuffle(loaded_json)
             if 'train' in dataset:
                 for data in loaded_json:

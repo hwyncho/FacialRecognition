@@ -15,6 +15,7 @@ def _make_list(sampling):
     import random
     import numpy as np
 
+    # list of set name
     set_type_list = list(IMAGES_DIR.keys())
     set_type_list.sort()
 
@@ -50,33 +51,33 @@ def _make_list(sampling):
             test_count.append(len(datasets['test'][class_]))
 
         if sampling == 'over':
-            min_ = min(train_count)
-            max_ = max(train_count)
-            idx = np.argmin(train_count)
+            for set_type in set_type_list:
+                if set_type == 'train':
+                    max_idx = np.argmax(train_count)
+                    max_ = max(train_count)
+                elif set_type == 'test':
+                    max_idx = np.argmax(test_count)
+                    max_ = max(test_count)
 
-            temp = []
-            for _ in range(int(max_ / min_)):
-                temp += datasets['train'][class_list[idx]]
-            datasets['train'][class_list[idx]] = temp
-
-            min_ = min(test_count)
-            max_ = max(test_count)
-            idx = np.argmin(test_count)
-
-            temp = []
-            for _ in range(int(max_ / min_)):
-                temp += datasets['test'][class_list[idx]]
-            datasets['test'][class_list[idx]] = temp
+                for (i, class_) in enumerate(class_list):
+                    if i != max_idx:
+                        if len(datasets[set_type][class_]) != 0:
+                            a = max_ // len(datasets[set_type][class_])
+                            b = max_ % len(datasets[set_type][class_])
+                            datasets[set_type][class_] = datasets[set_type][class_] * a + datasets[set_type][class_][:b]
         elif sampling == 'under':
-            idx = min(train_count)
-            for class_ in class_list:
-                random.shuffle(datasets['train'][class_])
-                datasets['train'][class_] = datasets['train'][class_][:idx]
+            for set_type in set_type_list:
+                if set_type == 'train':
+                    min_idx = np.argmin(train_count)
+                    min_ = min(train_count)
+                elif set_type == 'test':
+                    min_idx = np.argmin(test_count)
+                    min_ = min(test_count)
 
-            idx = min(test_count)
-            for class_ in class_list:
-                random.shuffle(datasets['test'][class_])
-                datasets['test'][class_] = datasets['test'][class_][:idx]
+                for (i, class_) in enumerate(class_list):
+                    if i != min_idx:
+                        if len(datasets[set_type][class_]) != 0:
+                            datasets[set_type][class_] = datasets[set_type][class_][:min_idx]
 
     return datasets
 
@@ -152,6 +153,7 @@ def _read_dataset(data_list, add_transpose):
 
                 opened_image.close()
 
+        random.seed(777)
         random.shuffle(dataset)
         datasets[set_type] = dataset
 

@@ -64,6 +64,7 @@ class Cnn:
         self._batch_size = 100
         self._device = 'cpu'
         self._sess = tf.Session()
+        tf.random_seed(777)
 
     def __del__(self):
         self._LOAD_FLAG = False
