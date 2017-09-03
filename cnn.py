@@ -79,10 +79,11 @@ class Cnn:
 
     def load_dataset(self, dataset_path):
         """
-        Parameters
-        ==========
-        dataset_path : str
+        Load the dataset from a specific path.
+
+        :param dataset_path: str
             The path to the dataset to load.
+        :return: nothing
         """
         import input_data
 
@@ -95,10 +96,11 @@ class Cnn:
 
     def load_model(self, model_path):
         """
-        Parameters
-        ==========
-        model_path : str
+        Load the learned model from a specific path.
+
+        :param model_path: str
             The path to the model to load.
+        :return: nothing
         """
         import os
         import tensorflow as tf
@@ -124,10 +126,9 @@ class Cnn:
         """
         Set size of epoch.
 
-        Parameters
-        ==========
-        epoch : int
+        :param epoch: int
             size of epoch
+        :return: nothing
         """
         self._epoch = epoch
 
@@ -135,19 +136,19 @@ class Cnn:
         """
         Set size of batch.
 
-        Parameters
-        ==========
-        batch_size : int
+        :param batch_size: int
             size of batch
+        :return: nothing
         """
         self._batch_size = batch_size
 
     def set_device(self, device='cpu'):
         """
-        Parameters
-        ==========
-        device : str
+        Set up the device with CPU or GPU.
+
+        :param device: str
             'cpu' or 'gpu'
+        :return: nothing
         """
         if device in ['cpu', 'gpu']:
             self._device = device
@@ -156,12 +157,11 @@ class Cnn:
 
     def train(self, model_save_path='./Models/model'):
         """
-        Train Neural-Networks.
+        Train Neural-Networks and save model.
 
-        Parameters
-        ==========
-        model_save_path : str
+        :param model_save_path: str
             the path to save the learning model.
+        :return: nothing
         """
         if not self._LOAD_FLAG:
             print('Please Load Dataset by load_dataset(path).')
@@ -234,6 +234,7 @@ class Cnn:
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         with tf.device('/cpu:0'):
+            """
             model_param_list = [
                 W_conv1, b_conv1,
                 W_conv2, b_conv2,
@@ -242,6 +243,7 @@ class Cnn:
                 W_fc2, b_fc2,
                 y_conv
             ]
+            """
             model_saver = tf.train.Saver()
 
         # run session
@@ -269,7 +271,14 @@ class Cnn:
         self._MODEL_FLAG = True
         print("Model save to '{}.meta'".format(model_save_path))
 
-    def query(self, image, model_path=None):
+    def query(self, images, model_path=None):
+        """
+        Input images and predict labels.
+
+        :param images: array
+        :param model_path: str
+        :return: nothing
+        """
         if not model_path:
             if not self._MODEL_FLAG:
                 print('Please Load Model by load_model(path).')
@@ -292,6 +301,6 @@ class Cnn:
             predict = tf.argmax(y_conv, 1)
 
         # run session
-        result = self._sess.run(predict, feed_dict={x: image, keep_prob: 1.0})
+        result = self._sess.run(predict, feed_dict={x: images, keep_prob: 1.0})
 
         return result
