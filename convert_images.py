@@ -93,9 +93,9 @@ def _read_dataset(data_list, add_transpose):
     class_list.sort()
     class_num = len(class_list)
 
-    datasets = {}
+    datasets = dict()
     for set_type in set_type_list:
-        dataset = []
+        dataset = list()
         for (i, class_) in enumerate(class_list):
             image_list = data_list[set_type][class_]
             for image_name in image_list:
@@ -183,14 +183,14 @@ def _save_dataset(dataset, save_dir):
     datasets_zip = zipfile.ZipFile('{0}/{1}'.format(save_dir, 'Datasets.zip'), 'w')
 
     os.chdir(save_dir)
-    for f in os.listdir(save_dir):
+    for f in os.listdir('./'):
         if f.endswith('.json'):
             datasets_zip.write(f, compress_type=zipfile.ZIP_DEFLATED)
 
     datasets_zip.close()
 
-    os.remove('{0}/{1}'.format(save_dir, 'train.json'))
-    os.remove('{0}/{1}'.format(save_dir, 'test.json'))
+    os.remove('./train.json')
+    os.remove('./test.json')
 
 
 def convert(sampling=None, add_transpose=False, save_dir='./Datasets'):
@@ -204,8 +204,14 @@ def convert(sampling=None, add_transpose=False, save_dir='./Datasets'):
     save_dir : str
         the directory in which to store the dataset
     """
+    import os
+
+    cwd = os.getcwd()
+
     data_list = _make_list(sampling)
     datasets = _read_dataset(data_list, add_transpose)
     _save_dataset(datasets, save_dir)
 
     print('Convert Dataset complete!')
+
+    os.chdir(cwd)

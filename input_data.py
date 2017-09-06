@@ -29,17 +29,17 @@ def load_dataset(path='./Datasets.zip'):
     class Dataset:
         def __init__(self):
             self._idx = 0
-            self._size = 0
+            self.num_examples = 0
             self.images = []
             self.labels = []
 
         def add_data(self, image, label):
-            self._size += 1
+            self.num_examples += 1
             self.images.append(image)
             self.labels.append(label)
 
         def next_batch(self, batch_size):
-            if self._idx >= self._size:
+            if self._idx >= self.num_examples:
                 self._idx = 0
 
             i = self._idx
