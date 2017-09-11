@@ -52,30 +52,43 @@ class Cnn:
     def __init__(self):
         import tensorflow as tf
 
-        self._LOAD_FLAG = False
-        self._MODEL_FLAG = False
+        self.__LOAD_DATASET = False
+        self.__LOAD_MODEL = False
+
         self._datasets = None
-        self._train_size = None
-        self._test_size = None
+        self._model = None
+
         self._image_size = None
         self._class_num = None
-        self._model = None
+
+        self._train_size = None
+        self._test_size = None
+
+        self._device = 'cpu'
         self._epoch = 10
         self._batch_size = 100
-        self._device = 'cpu'
+
         self._sess = tf.Session()
-        tf.random_seed(777)
 
     def __del__(self):
-        self._LOAD_FLAG = False
-        self._MODEL_FLAG = False
-        self._datasets = None
-        self._train_size = None
-        self._test_size = None
-        self._image_size = None
-        self._class_num = None
-        self._model = None
+        del self.__LOAD_DATASET
+        del self.__LOAD_MODEL
+
+        del self._datasets
+        del self._model
+
+        del self._image_size
+        del self._class_num
+
+        del self._train_size
+        del self._test_size
+
+        del self._device
+        del self._epoch
+        del self._batch_size
+
         self._sess.close()
+        del self._sess
 
     def load_dataset(self, dataset_path):
         """
@@ -87,12 +100,15 @@ class Cnn:
         """
         import input_data
 
+        self.__LOAD_DATASET = True
+
         self._datasets = input_data.load_dataset(dataset_path)
-        self._train_size = len(self._datasets.train.images)
-        self._test_size = len(self._datasets.test.images)
+
         self._image_size = len(self._datasets.train.images[0])
         self._class_num = len(self._datasets.train.labels[0])
-        self._LOAD_FLAG = True
+
+        self._train_size = len(self._datasets.train.num_examples)
+        self._test_size = len(self._datasets.test.num_examples)
 
     def load_model(self, model_path):
         """
@@ -105,22 +121,33 @@ class Cnn:
         import os
         import tensorflow as tf
 
-        self._MODEL_FLAG = True
-
         if os.path.exists(model_path):
             par_dir = os.path.split(model_path)[0]
             model_file = os.path.split(model_path)[1]
             if model_file.endswith('.meta'):
                 if os.path.exists('{0}/checkpoint'.format(par_dir)):
+                    self.__LOAD_MODEL = True
                     self._model = tf.train.import_meta_graph(model_path, clear_devices=True)
                     self._model.restore(self._sess, tf.train.latest_checkpoint(par_dir))
-                    self._MODEL_FLAG = True
                 else:
                     print("'checkpoint is not exist in '{}'".format(par_dir))
             else:
                 print("model_path must be end with '.meta'.")
         else:
             print("The path '{}' is not Exist.".format(model_path))
+
+    def set_device(self, device='cpu'):
+        """
+        Set up the device with CPU or GPU.
+
+        :param device: str
+            'cpu' or 'gpu'
+        :return: nothing
+        """
+        if device in ['cpu', 'gpu']:
+            self._device = device
+        else:
+            print("device must be in ['cpu', 'gpu']")
 
     def set_epoch(self, epoch=10):
         """
@@ -142,19 +169,6 @@ class Cnn:
         """
         self._batch_size = batch_size
 
-    def set_device(self, device='cpu'):
-        """
-        Set up the device with CPU or GPU.
-
-        :param device: str
-            'cpu' or 'gpu'
-        :return: nothing
-        """
-        if device in ['cpu', 'gpu']:
-            self._device = device
-        else:
-            print("device must be in ['cpu', 'gpu']")
-
     def train(self, model_save_path='./Models/model'):
         """
         Train Neural-Networks and save model.
@@ -163,7 +177,7 @@ class Cnn:
             the path to save the learning model.
         :return: nothing
         """
-        if not self._LOAD_FLAG:
+        if not self.__LOAD_MODEL:
             print('Please Load Dataset by load_dataset(path).')
             return
 
@@ -250,8 +264,15 @@ class Cnn:
         self._sess.run(tf.global_variables_initializer())
         self._sess.run(tf.local_variables_initializer())
 
-        train_count = int(self._train_size / self._batch_size)
-        test_count = int(self._train_size / self._batch_size)
+        if self._train_size < self._batch_size:
+            train_count = 1
+        else:
+            train_count = int(self._train_size / self._batch_size)
+
+        if self._test_size < self._batch_size:
+            test_count = 1
+        else:
+            test_count = int(self._train_size / self._batch_size)
 
         for _ in range(self._epoch):
             for i in range(train_count):
@@ -268,7 +289,7 @@ class Cnn:
             os.makedirs(par_dir)
 
         model_saver.save(self._sess, model_save_path)
-        self._MODEL_FLAG = True
+        self.__LOAD_MODEL = True
         print("Model save to '{}.meta'".format(model_save_path))
 
     def query(self, images, model_path=None):
@@ -280,7 +301,7 @@ class Cnn:
         :return: nothing
         """
         if not model_path:
-            if not self._MODEL_FLAG:
+            if not self.__LOAD_MODEL:
                 print('Please Load Model by load_model(path).')
                 return
         else:

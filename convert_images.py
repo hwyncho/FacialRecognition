@@ -26,60 +26,45 @@ def _make_list(sampling):
             class_list.append(class_name)
     class_list.sort()
 
-    datasets = {}
+    data_list = dict()
     for set_type in set_type_list:
-        datasets[set_type] = {}
+        data_list[set_type] = dict()
         for class_ in class_list:
             # list of image file name
-            image_list = []
+            image_list = list()
             for image_name in os.listdir('{0}/{1}'.format(IMAGES_DIR[set_type], class_)):
                 if image_name.endswith('.jpg') or image_name.endswith('.png'):
                     image_list.append(image_name)
             image_list.sort()
 
-            datasets[set_type][class_] = image_list
+            data_list[set_type][class_] = image_list
 
     if not sampling:
-        return datasets
+        return data_list
     else:
         train_count = []
         for class_ in class_list:
-            train_count.append(len(datasets['train'][class_]))
-
-        test_count = []
-        for class_ in class_list:
-            test_count.append(len(datasets['test'][class_]))
+            train_count.append(len(data_list['train'][class_]))
 
         if sampling == 'over':
-            for set_type in set_type_list:
-                if set_type == 'train':
-                    max_idx = np.argmax(train_count)
-                    max_ = max(train_count)
-                elif set_type == 'test':
-                    max_idx = np.argmax(test_count)
-                    max_ = max(test_count)
+            max_idx = np.argmax(train_count)
+            max_ = max(train_count)
 
-                for (i, class_) in enumerate(class_list):
-                    if i != max_idx:
-                        if len(datasets[set_type][class_]) != 0:
-                            a = max_ // len(datasets[set_type][class_])
-                            b = max_ % len(datasets[set_type][class_])
-                            datasets[set_type][class_] = datasets[set_type][class_] * a + datasets[set_type][class_][:b]
+            for (i, class_) in enumerate(class_list):
+                if i != max_idx:
+                    if len(data_list[set_type][class_]) != 0:
+                        a = max_ // len(data_list['train'][class_])
+                        b = max_ % len(data_list['train'][class_])
+                        data_list['train'][class_] = data_list['train'][class_] * a + data_list['train'][class_][:b]
         elif sampling == 'under':
-            for set_type in set_type_list:
-                if set_type == 'train':
-                    min_idx = np.argmin(train_count)
-                    min_ = min(train_count)
-                elif set_type == 'test':
-                    min_idx = np.argmin(test_count)
-                    min_ = min(test_count)
+            min_idx = np.argmin(train_count)
 
-                for (i, class_) in enumerate(class_list):
-                    if i != min_idx:
-                        if len(datasets[set_type][class_]) != 0:
-                            datasets[set_type][class_] = datasets[set_type][class_][:min_idx]
+            for (i, class_) in enumerate(class_list):
+                if i != min_idx:
+                    if len(data_list['train'][class_]) != 0:
+                        data_list['train'][class_] = data_list['train'][class_][:min_idx]
 
-    return datasets
+    return data_list
 
 
 def _read_dataset(data_list, add_transpose):
