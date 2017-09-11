@@ -177,7 +177,7 @@ class Cnn:
             the path to save the learning model.
         :return: nothing
         """
-        if not self.__LOAD_MODEL:
+        if not self.__LOAD_DATASET:
             print('Please Load Dataset by load_dataset(path).')
             return
 
