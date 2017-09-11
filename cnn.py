@@ -185,6 +185,8 @@ class Cnn:
         import numpy as np
         import tensorflow as tf
 
+        tf.set_random_seed(777)
+
         WIDTH = int(np.sqrt(self._image_size))
         HEIGHT = int(np.sqrt(self._image_size))
         RATIO = 1 << 3
