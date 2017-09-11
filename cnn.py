@@ -107,8 +107,8 @@ class Cnn:
         self._image_size = len(self._datasets.train.images[0])
         self._class_num = len(self._datasets.train.labels[0])
 
-        self._train_size = len(self._datasets.train.num_examples)
-        self._test_size = len(self._datasets.test.num_examples)
+        self._train_size = self._datasets.train.num_examples
+        self._test_size = self._datasets.test.num_examples
 
     def load_model(self, model_path):
         """
