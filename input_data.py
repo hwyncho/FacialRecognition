@@ -96,3 +96,5 @@ def load_dataset(path='./Datasets.zip'):
         return datsets
     else:
         print("The path '{}' does not exist.".format(path))
+
+        return None

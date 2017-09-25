@@ -65,7 +65,7 @@ class Cnn:
         self._test_size = None
 
         self._device = 'cpu'
-        self._epoch = 10
+        self._epoch = 100
         self._batch_size = 100
 
         self._sess = tf.Session()
@@ -100,15 +100,18 @@ class Cnn:
         """
         import input_data
 
-        self.__LOAD_DATASET = True
-
         self._datasets = input_data.load_dataset(dataset_path)
+        if self._datasets:
+            self.__LOAD_DATASET = True
+            self._image_size = len(self._datasets.train.images[0])
+            self._class_num = len(self._datasets.train.labels[0])
 
-        self._image_size = len(self._datasets.train.images[0])
-        self._class_num = len(self._datasets.train.labels[0])
+            self._train_size = self._datasets.train.num_examples
+            self._test_size = self._datasets.test.num_examples
 
-        self._train_size = self._datasets.train.num_examples
-        self._test_size = self._datasets.test.num_examples
+            return True
+        else:
+            return False
 
     def load_model(self, model_path):
         """
@@ -129,12 +132,16 @@ class Cnn:
                     self.__LOAD_MODEL = True
                     self._model = tf.train.import_meta_graph(model_path, clear_devices=True)
                     self._model.restore(self._sess, tf.train.latest_checkpoint(par_dir))
+
+                    return True
                 else:
                     print("'checkpoint is not exist in '{}'".format(par_dir))
             else:
                 print("model_path must be end with '.meta'.")
         else:
             print("The path '{}' is not Exist.".format(model_path))
+
+        return False
 
     def set_device(self, device='cpu'):
         """
@@ -185,6 +192,7 @@ class Cnn:
         import numpy as np
         import tensorflow as tf
 
+        tf.reset_default_graph()
         tf.set_random_seed(777)
 
         WIDTH = int(np.sqrt(self._image_size))
@@ -276,11 +284,13 @@ class Cnn:
         else:
             test_count = int(self._train_size / self._batch_size)
 
+        # train
         for _ in range(self._epoch):
             for i in range(train_count):
                 batch_x, batch_y = self._datasets.train.next_batch(self._batch_size)
                 self._sess.run(train_step, feed_dict={x: batch_x, y: batch_y, keep_prob: 0.8})
 
+        # test
         for i in range(test_count):
             batch_x, batch_y = self._datasets.test.next_batch(self._batch_size)
             self._sess.run(accuracy, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
@@ -294,7 +304,7 @@ class Cnn:
         self.__LOAD_MODEL = True
         print("Model save to '{}.meta'".format(model_save_path))
 
-    def query(self, images, model_path=None):
+    def query(self, image_path, model_path=None):
         """
         Input images and predict labels.
 
@@ -307,23 +317,35 @@ class Cnn:
                 print('Please Load Model by load_model(path).')
                 return
         else:
-            self.load_model(model_path)
+            if self.load_model(model_path):
+                from PIL import Image
+                import tensorflow as tf
 
-        import tensorflow as tf
+                opened_image = Image.open(image_path).convert(mode='L')
+                width, height = opened_image.size
 
-        graph = tf.get_default_graph()
+                image = []
+                for y in range(height):
+                    for x in range(width):
+                        image.append(
+                            opened_image.getpixel((x, y))
+                        )
 
-        with tf.device('/{}:0'.format(self._device)):
-            # Input
-            x = graph.get_tensor_by_name('input_x:0')
+                graph = tf.get_default_graph()
 
-            # Dropout
-            keep_prob = graph.get_tensor_by_name('keep_prob:0')
+                with tf.device('/{}:0'.format(self._device)):
+                    # Input
+                    x = graph.get_tensor_by_name('input_x:0')
 
-            y_conv = graph.get_tensor_by_name('y_conv:0')
-            predict = tf.argmax(y_conv, 1)
+                    # Dropout
+                    keep_prob = graph.get_tensor_by_name('keep_prob:0')
 
-        # run session
-        result = self._sess.run(predict, feed_dict={x: images, keep_prob: 1.0})
+                    y_conv = graph.get_tensor_by_name('y_conv:0')
+                    predict = tf.argmax(y_conv, 1)
 
-        return result
+                # run session
+                result = self._sess.run(predict, feed_dict={x: image, keep_prob: 1.0})
+
+                return result
+            else:
+                return None
