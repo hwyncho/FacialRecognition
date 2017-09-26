@@ -15,7 +15,12 @@ def _weight_variable(shape, name=None):
         weight variable
     """
     import tensorflow as tf
-    return tf.Variable(tf.truncated_normal(shape, stddev=0.1), name=name)
+    return tf.get_variable(
+        name=name,
+        shape=shape,
+        dtype=tf.float32,
+        initializer=tf.contrib.layers.xavier_initializer(seed=777)
+    )
 
 
 def _bias_variable(shape, name=None):
@@ -192,7 +197,6 @@ class Cnn:
         import numpy as np
         import tensorflow as tf
 
-        tf.reset_default_graph()
         tf.set_random_seed(777)
 
         WIDTH = int(np.sqrt(self._image_size))
@@ -208,7 +212,7 @@ class Cnn:
 
             x_image = tf.reshape(x, [-1, HEIGHT, WIDTH, 1], name='image')
 
-            """ Weight ans Bias """
+            """ Weight and Bias """
             # First Convolutional Layer
             W_conv1 = _weight_variable([5, 5, 1, 32], name='W_conv1')
             b_conv1 = _bias_variable([32], name='b_conv1')
@@ -249,25 +253,17 @@ class Cnn:
             keep_prob = tf.placeholder(tf.float32, name='keep_prob')
             h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='h_fc1_drop')
 
-            y_conv = tf.add(tf.matmul(h_fc1_drop, W_fc2), b_fc2, name='y_conv')
+            y_predict = tf.add(tf.matmul(h_fc1_drop, W_fc2), b_fc2, name='y_predict')
 
-            cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=y_conv))
+            cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=y_predict))
             train_step = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cross_entropy)
 
-            correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y, 1))
+            correct_prediction = tf.equal(tf.argmax(y_predict, 1), tf.argmax(y, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         with tf.device('/cpu:0'):
-            """
-            model_param_list = [
-                W_conv1, b_conv1,
-                W_conv2, b_conv2,
-                W_conv3, b_conv3,
-                W_fc1, b_fc1,
-                W_fc2, b_fc2,
-                y_conv
-            ]
-            """
+            confusion_matrix = tf.confusion_matrix(labels=tf.argmax(y, 1), predictions=tf.argmax(y_predict, 1))
+
             model_saver = tf.train.Saver()
 
         # run session
@@ -277,23 +273,44 @@ class Cnn:
         if self._train_size < self._batch_size:
             train_count = 1
         else:
-            train_count = int(self._train_size / self._batch_size)
+            train_count = int(self._train_size / self._batch_size) + 1
 
         if self._test_size < self._batch_size:
             test_count = 1
         else:
-            test_count = int(self._train_size / self._batch_size)
+            test_count = int(self._train_size / self._batch_size) + 1
 
-        # train
+        # optimization
         for _ in range(self._epoch):
             for i in range(train_count):
                 batch_x, batch_y = self._datasets.train.next_batch(self._batch_size)
                 self._sess.run(train_step, feed_dict={x: batch_x, y: batch_y, keep_prob: 0.8})
 
+        # train
+        train_accuracy = 0
+        for i in range(train_count):
+            batch_x, batch_y = self._datasets.train.next_batch(self._batch_size)
+            train_accuracy += self._sess.run(accuracy, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+            if i == 0:
+                train_cm = self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+            else:
+                train_cm += self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+
+        train_accuracy /= train_count
+        train_cm = train_cm.tolist()
+
         # test
+        test_accuracy = 0
         for i in range(test_count):
             batch_x, batch_y = self._datasets.test.next_batch(self._batch_size)
-            self._sess.run(accuracy, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+            test_accuracy += self._sess.run(accuracy, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+            if i == 0:
+                test_cm = self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+            else:
+                test_cm += self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+
+        test_accuracy /= test_count
+        test_cm = test_cm.tolist()
 
         # save model
         par_dir = os.path.split(model_save_path)[0]
@@ -303,6 +320,19 @@ class Cnn:
         model_saver.save(self._sess, model_save_path)
         self.__LOAD_MODEL = True
         print("Model save to '{}.meta'".format(model_save_path))
+
+        tf.reset_default_graph()
+
+        return {
+            'train': {
+                'accuracy': train_accuracy,
+                'confusion_matrix': train_cm
+            },
+            'test': {
+                'accuracy': test_accuracy,
+                'confusion_matrix': test_cm
+            }
+        }
 
     def query(self, image_path, model_path=None):
         """
@@ -340,7 +370,7 @@ class Cnn:
                     # Dropout
                     keep_prob = graph.get_tensor_by_name('keep_prob:0')
 
-                    y_conv = graph.get_tensor_by_name('y_conv:0')
+                    y_conv = graph.get_tensor_by_name('y_predict:0')
                     predict = tf.argmax(y_conv, 1)
 
                 # run session
