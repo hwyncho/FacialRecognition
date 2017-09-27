@@ -205,6 +205,20 @@ class Cnn:
         REDUCED_WIDTH = int(WIDTH / RATIO)
         REDUCED_HEIGHT = int(HEIGHT / RATIO)
 
+        if self._train_size <= self._batch_size:
+            train_count = 1
+        elif (self._train_size % self._batch_size) == 0:
+            train_count = int(self._train_size / self._batch_size)
+        else:
+            train_count = int(self._train_size / self._batch_size) + 1
+
+        if self._test_size <= self._batch_size:
+            test_count = 1
+        elif (self._test_size % self._batch_size) == 0:
+            test_count = int(self._test_size / self._batch_size)
+        else:
+            test_count = int(self._test_size / self._batch_size) + 1
+
         with tf.device('/{}:0'.format(self._device)):
             # Input
             x = tf.placeholder(tf.float32, shape=[None, self._image_size], name='input_x')
@@ -269,16 +283,6 @@ class Cnn:
         # run session
         self._sess.run(tf.global_variables_initializer())
         self._sess.run(tf.local_variables_initializer())
-
-        if self._train_size < self._batch_size:
-            train_count = 1
-        else:
-            train_count = int(self._train_size / self._batch_size) + 1
-
-        if self._test_size < self._batch_size:
-            test_count = 1
-        else:
-            test_count = int(self._train_size / self._batch_size) + 1
 
         # optimization
         for _ in range(self._epoch):
