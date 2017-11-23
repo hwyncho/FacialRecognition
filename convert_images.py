@@ -1,5 +1,6 @@
 """
 Created by 조휘연 on 2017. 08. 24.
+Last updated by 조휘연 on 2017. 11. 23.
 Copyright © 2017년 조휘연. All rights reserved.
 ==================================================
 Convert Images to Dataset.
@@ -22,8 +23,8 @@ random.seed(777)
 
 IMAGES_DIR = './Images'
 
-IMAGE_WIDTH = 28
-IMAGE_HEIGHT = 28
+IMAGE_WIDTH = 48
+IMAGE_HEIGHT = 48
 IMAGE_MODE = 'RGB'
 #IMAGE_MODE = 'L'
 
@@ -166,16 +167,17 @@ def main(save_path='./Datasets.bin', shuffle=True, sampling=None):
         random.shuffle(image_path_list)
 
     # convert images to dataset
-    f = open('./Datasets.bin', mode='wb')
+    f = open(save_path, mode='wb')
 
     if IMAGE_MODE == 'RGB':
-        info = [(IMAGE_HEIGHT * IMAGE_WIDTH * 3), len(image_path_list), len(label_path_list)]
+        info = [(IMAGE_HEIGHT * IMAGE_WIDTH * 3), len(label_path_list), len(image_path_list)]
     elif IMAGE_MODE == 'L':
-        info = [(IMAGE_HEIGHT * IMAGE_WIDTH), len(image_path_list), len(label_path_list)]
+        info = [(IMAGE_HEIGHT * IMAGE_WIDTH), len(label_path_list), len(image_path_list)]
     else:
         raise ValueError("'IMAGE_MODE' must be 'RGB' or 'L'.")
 
     # write dataset information
+    # image_size, label_size, num_examples
     buffer = struct.pack('%si' % len(info), *info)
     f.write(buffer)
 
@@ -205,3 +207,12 @@ def main(save_path='./Datasets.bin', shuffle=True, sampling=None):
         f.write(buffer)
 
     f.close()
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 3:
+        raise RuntimeError('python convert_images.py [images_dir] [save_path]')
+
+    if len(sys.argv) == 3:
+        IMAGES_DIR = sys.argv[1]
+        main(save_path=sys.argv[2])
