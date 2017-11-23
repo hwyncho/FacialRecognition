@@ -1,202 +1,207 @@
-IMAGES_DIR = {
-    'train': './Images/train',
-    'test': './Images/test'
-}
+"""
+Created by 조휘연 on 2017. 08. 24.
+Copyright © 2017년 조휘연. All rights reserved.
+==================================================
+Convert Images to Dataset.
+"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import os
+import random
+import struct
+import sys
+
+from PIL import Image
+import numpy as np
 
 
-def _has_path(path):
-    import os
-
-    return os.path.exists(path)
+random.seed(777)
 
 
-def _make_list(sampling):
-    import os
-    import random
-    import numpy as np
+IMAGES_DIR = './Images'
 
-    # list of set name
-    set_type_list = list(IMAGES_DIR.keys())
-    set_type_list.sort()
+IMAGE_WIDTH = 28
+IMAGE_HEIGHT = 28
+IMAGE_MODE = 'RGB'
+#IMAGE_MODE = 'L'
 
-    # list of class name
-    class_list = []
-    for class_name in os.listdir(IMAGES_DIR['train']):
-        if not class_name.startswith('.'):
-            class_list.append(class_name)
-    class_list.sort()
 
-    data_list = dict()
-    for set_type in set_type_list:
-        data_list[set_type] = dict()
-        for class_ in class_list:
-            # list of image file name
-            image_list = list()
-            for image_name in os.listdir('{0}/{1}'.format(IMAGES_DIR[set_type], class_)):
-                if image_name.endswith('.jpg') or image_name.endswith('.png'):
-                    image_list.append(image_name)
-            image_list.sort()
+def _is_image(image_name):
+    if not image_name.startswith('.'):
+        if image_name.endswith('.jpg') or image_name.endswith('.jpeg') or image_name.endswith('.png'):
+            return True
 
-            data_list[set_type][class_] = image_list
+    return False
 
-    if not sampling:
-        return data_list
+
+def _sampling_over():
+    label_path_list = list()
+    count_list = list()
+
+    # count the number of images per label
+    for label_name in os.listdir(IMAGES_DIR):
+        label_path = '{0}/{1}'.format(IMAGES_DIR, label_name)
+        if (not label_name.startswith('.')) and os.path.isdir(label_path):
+            count = len(os.listdir(label_path))
+            if count > 0:
+                label_path_list.append(label_path)
+                count_list.append(count)
+
+    image_path_list = list()
+    max_count = max(count_list)
+    max_idx = np.argmax(count_list)
+
+    for (idx, label_path) in enumerate(label_path_list):
+        image_name_list = list()
+        for image_name in os.listdir(label_path):
+            if _is_image(image_name):
+                image_name_list.append(image_name)
+
+        if idx != max_idx:
+            random.shuffle(image_name_list)
+            a = max_count // len(image_name_list)
+            b = max_count % len(image_name_list)
+            image_name_list = image_name_list * a + image_name_list[:b]
+
+        for image_name in image_name_list:
+            image_path = '{0}/{1}'.format(label_path, image_name)
+            image_path_list.append(image_path)
+
+    return label_path_list, image_path_list
+
+
+def _sampling_under():
+    label_path_list = list()
+    count_list = list()
+
+    # count the number of images per label
+    for label_name in os.listdir(IMAGES_DIR):
+        label_path = '{0}/{1}'.format(IMAGES_DIR, label_name)
+        if (not label_name.startswith('.')) and os.path.isdir(label_path):
+            count = len(os.listdir(label_path))
+            if count > 0:
+                label_path_list.append(label_path)
+                count_list.append(count)
+
+    image_path_list = list()
+    min_count = min(count_list)
+    min_idx = np.argmin(count_list)
+
+    for (idx, label_path) in enumerate(label_path_list):
+        image_name_list = list()
+        for image_name in os.listdir(label_path):
+            if _is_image(image_name):
+                image_name_list.append(image_name)
+
+        if idx != min_idx:
+            random.shuffle(image_name_list)
+            image_name_list = image_name_list[:min_count]
+
+        for image_name in image_name_list:
+            image_path = '{0}/{1}'.format(label_path, image_name)
+            image_path_list.append(image_path)
+
+    return label_path_list, image_path_list
+
+
+def _make_list(sampling=None):
+    if sampling:
+        if sampling.lower() == 'over':
+            return _sampling_over()
+        elif sampling.lower() == 'under':
+            return _sampling_under()
     else:
-        train_count = []
-        for class_ in class_list:
-            train_count.append(len(data_list['train'][class_]))
+        label_path_list = list()
 
-        if sampling == 'over':
-            max_idx = np.argmax(train_count)
-            max_ = max(train_count)
+        for label_name in os.listdir(IMAGES_DIR):
+            label_path = '{0}/{1}'.format(IMAGES_DIR, label_name)
+            if (not label_name.startswith('.')) and os.path.isdir(label_path):
+                if len(os.listdir(label_path)) > 0:
+                    label_path_list.append(label_path)
 
-            for (i, class_) in enumerate(class_list):
-                if i != max_idx:
-                    if len(data_list[set_type][class_]) != 0:
-                        a = max_ // len(data_list['train'][class_])
-                        b = max_ % len(data_list['train'][class_])
-                        data_list['train'][class_] = data_list['train'][class_] * a + data_list['train'][class_][:b]
-        elif sampling == 'under':
-            min_idx = np.argmin(train_count)
+        image_path_list = list()
 
-            for (i, class_) in enumerate(class_list):
-                if i != min_idx:
-                    if len(data_list['train'][class_]) != 0:
-                        data_list['train'][class_] = data_list['train'][class_][:min_idx]
+        for label_path in label_path_list:
+            for image_name in os.listdir(label_path):
+                if _is_image(image_name):
+                    image_path = '{0}/{1}'.format(label_path, image_name)
+                    image_path_list.append(image_path)
 
-    return data_list
+        return label_path_list, image_path_list
 
 
-def _read_dataset(data_list, add_transpose):
-    import random
-    from PIL import Image
-
-    set_type_list = list(data_list.keys())
-    set_type_list.sort()
-
-    class_list = list(data_list[set_type_list[0]].keys())
-    class_list.sort()
-    class_num = len(class_list)
-
-    datasets = dict()
-    for set_type in set_type_list:
-        dataset = list()
-        for (i, class_) in enumerate(class_list):
-            image_list = data_list[set_type][class_]
-            for image_name in image_list:
-                image_path = '{0}/{1}/{2}'.format(IMAGES_DIR[set_type], class_, image_name)
-                opened_image = Image.open(image_path).convert(mode='L')
-                width, height = opened_image.size
-
-                image = []
-                for y in range(height):
-                    for x in range(width):
-                        image.append(
-                            opened_image.getpixel((x, y))
-                        )
-
-                label = [0 for _ in range(class_num)]
-                label[i] = 1
-
-                data = {
-                    'image': image,
-                    'label': label
-                }
-
-                dataset.append(data)
-
-                if add_transpose:
-                    flipped_image = opened_image.transpose(Image.FLIP_LEFT_RIGHT)
-                    image = []
-                    for y in range(height):
-                        for x in range(width):
-                            image.append(
-                                flipped_image.getpixel((y, x))
-                            )
-
-                    data = {
-                        'image': image,
-                        'label': label
-                    }
-
-                    dataset.append(data)
-
-                    flipped_image = opened_image.transpose(Image.FLIP_TOP_BOTTOM)
-                    image = []
-                    for y in range(height):
-                        for x in range(width):
-                            image.append(
-                                flipped_image.getpixel((y, x))
-                            )
-
-                    data = {
-                        'image': image,
-                        'label': label
-                    }
-
-                    dataset.append(data)
-
-                opened_image.close()
-
-        random.seed(777)
-        random.shuffle(dataset)
-        datasets[set_type] = dataset
-
-    return datasets
-
-
-def _save_dataset(dataset, save_dir):
-    import json
-    import os
-    import zipfile
-
-    if not _has_path(save_dir):
-        os.makedirs(save_dir)
-
-    set_type_list = list(dataset.keys())
-    set_type_list.sort()
-
-    for set_type in set_type_list:
-        if str(set_type).lower() == 'train':
-            f = open('{0}/{1}'.format(save_dir, 'train.json'), 'w', encoding='utf-8')
-        elif str(set_type).lower() == 'test':
-            f = open('{0}/{1}'.format(save_dir, 'test.json'), 'w', encoding='utf-8')
-
-        json.dump(dataset[set_type], f)
-        f.close()
-
-    datasets_zip = zipfile.ZipFile('{0}/{1}'.format(save_dir, 'Datasets.zip'), 'w')
-
-    os.chdir(save_dir)
-    for f in os.listdir('./'):
-        if f.endswith('.json'):
-            datasets_zip.write(f, compress_type=zipfile.ZIP_DEFLATED)
-
-    datasets_zip.close()
-
-    os.remove('./train.json')
-    os.remove('./test.json')
-
-
-def convert(sampling=None, add_transpose=False, save_dir='./Datasets'):
+def main(save_path='./Datasets.bin', shuffle=True, sampling=None):
     """
     Parameters
     ===========
+    save_path : str
+        path to save converted dataset
+    shuffle : bool
+        whether to shuffle image list
     sampling : str
         sampling mode
-    add_transpose : bool
-        whether to add transpose
-    save_dir : str
-        the directory in which to store the dataset
     """
-    import os
+    if not isinstance(save_path, str):
+        raise TypeError("type of 'save_path' must be 'str'.")
 
-    cwd = os.getcwd()
+    if not isinstance(shuffle, bool):
+        raise TypeError("type of 'shuffle' must be 'bool'.")
 
-    data_list = _make_list(sampling)
-    datasets = _read_dataset(data_list, add_transpose)
-    _save_dataset(datasets, save_dir)
+    if sampling:
+        if not isinstance(sampling, str):
+            raise TypeError("type of 'sampling' must be 'str'.")
+        else:
+            if (sampling.lower() != 'over') or (sampling.lower() != 'under'):
+                raise TypeError("'sampling' must be 'over' or 'under'.")
 
-    print('Convert Dataset complete!')
+    label_path_list, image_path_list = _make_list(sampling)
 
-    os.chdir(cwd)
+    label_dict = dict()
+    for (idx, label_path) in enumerate(label_path_list):
+        label_dict[label_path] = idx
+
+    if shuffle:
+        random.shuffle(image_path_list)
+
+    # convert images to dataset
+    f = open('./Datasets.bin', mode='wb')
+
+    if IMAGE_MODE == 'RGB':
+        info = [(IMAGE_HEIGHT * IMAGE_WIDTH * 3), len(image_path_list), len(label_path_list)]
+    elif IMAGE_MODE == 'L':
+        info = [(IMAGE_HEIGHT * IMAGE_WIDTH), len(image_path_list), len(label_path_list)]
+    else:
+        raise ValueError("'IMAGE_MODE' must be 'RGB' or 'L'.")
+
+    # write dataset information
+    buffer = struct.pack('%si' % len(info), *info)
+    f.write(buffer)
+
+    for image_path in image_path_list:
+        image = Image.open(image_path).convert(mode=IMAGE_MODE)
+        w, h = image.size
+
+        if (w * h) != (IMAGE_HEIGHT * IMAGE_WIDTH):
+            raise ValueError(
+                "size of image must be '{0}', but '{1}' is '{2}'.".format(IMAGE_HEIGHT * IMAGE_WIDTH, image, (w * h))
+            )
+
+        pixel_list = list()
+        for y in range(h):
+            for x in range(w):
+                pixel = image.getpixel((x, y))
+                if isinstance(pixel, tuple):
+                    pixel_list += [p for p in pixel]
+                else:
+                    pixel_list.append(pixel)
+
+        label_path = os.path.split(image_path)[0]
+        label = label_dict[label_path]
+
+        line = pixel_list + [label]
+        buffer = struct.pack('%si' % len(line), *line)
+        f.write(buffer)
+
+    f.close()
