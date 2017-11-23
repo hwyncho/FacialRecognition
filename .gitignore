@@ -2,3 +2,4 @@
 .vscode
 .idea
 *.zip
+__pycache__
