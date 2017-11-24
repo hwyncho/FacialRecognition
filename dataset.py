@@ -5,6 +5,7 @@ Copyright © 2017년 조휘연. All rights reserved.
 ==================================================
 Class of Dataset
 """
+import os
 import struct
 
 
@@ -35,6 +36,9 @@ class Dataset:
     def _load_dataset(self, path, one_hot=True):
         if not isinstance(path, str):
             raise TypeError("type of 'path' must be str.")
+
+        if not os.path.exists(path):
+            raise FileNotFoundError('The dataset file is not exist from: {}'.format(path))
 
         self._fp = open(path, mode='rb')
 
