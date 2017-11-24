@@ -1,152 +1,107 @@
-def _weight_variable(shape, name=None):
-    """
-    Returns a variable of a specific shape.
+"""
+Created by 조휘연 on 2017. 08. 24.
+Last updated by 조휘연 on 2017. 11. 24.
+Copyright © 2017년 조휘연. All rights reserved.
+==================================================
+Convolutional Neural Network.
+"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-    Parameters
-    ==========
-    shape : list
-        shpae of variable
-    name : stf
-        name of variable
+import os
 
-    Returns
-    ==========
-    weight : tf.Tensor
-        weight variable
-    """
-    import tensorflow as tf
-    return tf.get_variable(
-        name=name,
-        shape=shape,
-        dtype=tf.float32,
-        initializer=tf.contrib.layers.xavier_initializer(seed=777)
-    )
+import numpy as np
+import tensorflow as tf
+from PIL import Image
 
+from dataset import Dataset
 
-def _bias_variable(shape, name=None):
-    """
-    Returns a variable of a specific shape.
-
-    Parameters
-    ==========
-    shape : list
-        shpae of variable
-    name : stf
-        name of variable
-
-    Returns
-    ==========
-    bias : tf.Tensor
-        bias variable
-    """
-    import tensorflow as tf
-    return tf.Variable(tf.constant(0.1, dtype=tf.float32, shape=shape), name=name)
-
-
-def _conv2d(x, W, name=None):
-    import tensorflow as tf
-    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME', name=name)
-
-
-def _max_pool_2x2(x, name=None):
-    import tensorflow as tf
-    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
+np.random.seed(777)
+tf.set_random_seed(777)
 
 
 class Cnn:
     def __init__(self):
-        import tensorflow as tf
+        self.__load_dataset = False
+        self.__load_model = False
 
-        self.__LOAD_DATASET = False
-        self.__LOAD_MODEL = False
-
-        self._datasets = None
+        self._dataset = None
         self._model = None
 
-        self._image_size = None
-        self._class_num = None
+        self._image_width = 48
+        self._image_height = 48
+        self._image_mode = 'RGB'
 
-        self._train_size = None
-        self._test_size = None
+        self._dataset_size = 0
+        self._image_size = 0
+        self._label_size = 0
 
         self._device = 'cpu'
         self._epoch = 100
         self._batch_size = 100
 
-        self._sess = tf.Session()
-
     def __del__(self):
-        del self.__LOAD_DATASET
-        del self.__LOAD_MODEL
+        del self.__load_dataset
+        del self.__load_model
 
-        del self._datasets
+        del self._dataset
         del self._model
 
-        del self._image_size
-        del self._class_num
+        del self._image_width
+        del self._image_height
+        del self._image_mode
 
-        del self._train_size
-        del self._test_size
+        del self._dataset_size
+        del self._image_size
+        del self._label_size
 
         del self._device
         del self._epoch
         del self._batch_size
 
-        self._sess.close()
-        del self._sess
-
-    def load_dataset(self, dataset_path):
+    def load_dataset(self, path):
         """
         Load the dataset from a specific path.
 
         :param dataset_path: str
             The path to the dataset to load.
-        :return: nothing
         """
-        import input_data
+        if not isinstance(path, str):
+            raise TypeError("type of 'path' must be str.")
 
-        self._datasets = input_data.load_dataset(dataset_path)
-        if self._datasets:
-            self.__LOAD_DATASET = True
-            self._image_size = len(self._datasets.train.images[0])
-            self._class_num = len(self._datasets.train.labels[0])
+        if not os.path.exists(path):
+            raise FileNotFoundError()
 
-            self._train_size = self._datasets.train.num_examples
-            self._test_size = self._datasets.test.num_examples
+        self.__load_dataset = True
+        self._dataset = Dataset(path, one_hot=True)
+        self._dataset_size = self._dataset.num_examples
+        self._image_size = self._dataset.image_size
+        self._label_size = self._dataset.label_size
 
-            return True
-        else:
-            return False
-
-    def load_model(self, model_path):
+    def load_model(self, path, sess):
         """
         Load the learned model from a specific path.
 
         :param model_path: str
             The path to the model to load.
-        :return: nothing
         """
-        import os
-        import tensorflow as tf
+        if not isinstance(path, str):
+            raise TypeError("type of 'path' must be str.")
 
-        if os.path.exists(model_path):
-            par_dir = os.path.split(model_path)[0]
-            model_file = os.path.split(model_path)[1]
-            if model_file.endswith('.meta'):
-                if os.path.exists('{0}/checkpoint'.format(par_dir)):
-                    self.__LOAD_MODEL = True
-                    self._model = tf.train.import_meta_graph(model_path, clear_devices=True)
-                    self._model.restore(self._sess, tf.train.latest_checkpoint(par_dir))
+        par_dir = os.path.split(path)[0]
+        meta_file = '{}.meta'.format(path)
+        ckpt_file = '{}/checkpoint'.format(par_dir)
 
-                    return True
-                else:
-                    print("'checkpoint is not exist in '{}'".format(par_dir))
-            else:
-                print("model_path must be end with '.meta'.")
-        else:
-            print("The path '{}' is not Exist.".format(model_path))
+        if not os.path.exists(meta_file):
+            raise FileNotFoundError('The meta file is not exist from: {}'.format(par_dir))
 
-        return False
+        if not os.path.exists(ckpt_file):
+            raise FileNotFoundError('The checkpoint file is not exist from: {}'.format(par_dir))
+
+        self.__load_model = True
+        self._model = tf.train.import_meta_graph(meta_file, clear_devices=True)
+        self._model.restore(sess, tf.train.latest_checkpoint(par_dir))
 
     def set_device(self, device='cpu'):
         """
@@ -154,20 +109,18 @@ class Cnn:
 
         :param device: str
             'cpu' or 'gpu'
-        :return: nothing
         """
         if device in ['cpu', 'gpu']:
             self._device = device
         else:
-            print("device must be in ['cpu', 'gpu']")
+            raise ValueError("'device' must be in 'cpu' or 'gpu'.")
 
-    def set_epoch(self, epoch=10):
+    def set_epoch(self, epoch=100):
         """
         Set size of epoch.
 
         :param epoch: int
             size of epoch
-        :return: nothing
         """
         self._epoch = epoch
 
@@ -177,209 +130,245 @@ class Cnn:
 
         :param batch_size: int
             size of batch
-        :return: nothing
         """
         self._batch_size = batch_size
 
-    def train(self, model_save_path='./Models/model'):
+    def train(self, dataset_path, model_path='./Models/model'):
         """
         Train Neural-Networks and save model.
 
-        :param model_save_path: str
+        :param dataset_path: str
+            the path to load the dataset for train.
+        :param model_path: str
             the path to save the learning model.
-        :return: nothing
         """
-        if not self.__LOAD_DATASET:
-            print('Please Load Dataset by load_dataset(path).')
-            return
+        if not isinstance(dataset_path, str):
+            raise TypeError("type of 'dataset_path' must be str.")
 
-        import os
-        import numpy as np
-        import tensorflow as tf
+        if not isinstance(model_path, str):
+            raise TypeError("type of 'model_path' must be str.")
 
-        tf.set_random_seed(777)
+        self.load_dataset(dataset_path)
 
-        WIDTH = int(np.sqrt(self._image_size))
-        HEIGHT = int(np.sqrt(self._image_size))
-        RATIO = 1 << 3
-        REDUCED_WIDTH = int(WIDTH / RATIO)
-        REDUCED_HEIGHT = int(HEIGHT / RATIO)
+        image_width = 48
+        image_height = 48
+        if self._image_mode == 'RGB':
+            image_channel = 3
+        elif self._image_mode == 'L':
+            image_channel = 1
 
-        if self._train_size <= self._batch_size:
-            train_count = 1
-        elif (self._train_size % self._batch_size) == 0:
-            train_count = int(self._train_size / self._batch_size)
-        else:
-            train_count = int(self._train_size / self._batch_size) + 1
-
-        if self._test_size <= self._batch_size:
-            test_count = 1
-        elif (self._test_size % self._batch_size) == 0:
-            test_count = int(self._test_size / self._batch_size)
-        else:
-            test_count = int(self._test_size / self._batch_size) + 1
+        learning_rate = 0.001
 
         with tf.device('/{}:0'.format(self._device)):
             # Input
-            x = tf.placeholder(tf.float32, shape=[None, self._image_size], name='input_x')
-            y = tf.placeholder(tf.float32, shape=[None, self._class_num], name='input_y')
+            with tf.variable_scope('Input_Layer') as scope:
+                x = tf.placeholder(tf.float32, shape=[None, self._image_size], name='images')
+                y = tf.placeholder(tf.float32, shape=[None, self._label_size], name='labels')
 
-            x_image = tf.reshape(x, [-1, HEIGHT, WIDTH, 1], name='image')
+            x_2d = tf.reshape(x, [-1, image_height, image_width, image_channel], name='images_2d')
 
-            """ Weight and Bias """
-            # First Convolutional Layer
-            W_conv1 = _weight_variable([5, 5, 1, 32], name='W_conv1')
-            b_conv1 = _bias_variable([32], name='b_conv1')
+            # Hidden Layers
+            with tf.variable_scope('Hidden_Layers') as scope:
+                conv_0 = tf.layers.conv2d(
+                    inputs=x_2d, filters=32, kernel_size=5, padding='same', activation=tf.nn.relu
+                )
+                pool_0 = tf.layers.max_pooling2d(
+                    inputs=conv_0, pool_size=2, strides=2, padding='same'
+                )
 
-            # Second Convolutional Layer
-            W_conv2 = _weight_variable([5, 5, 32, 64], name='W_conv2')
-            b_conv2 = _bias_variable([64], name='b_conv2')
+                conv_1 = tf.layers.conv2d(
+                    inputs=pool_0, filters=64, kernel_size=5, padding='same', activation=tf.nn.relu
+                )
+                pool_1 = tf.layers.max_pooling2d(
+                    inputs=conv_1, pool_size=2, strides=2, padding='same'
+                )
 
-            # Third Convolutional Layer
-            W_conv3 = _weight_variable([5, 5, 64, 128], name='W_conv3')
-            b_conv3 = _bias_variable([128], name='b_conv3')
+                conv_2 = tf.layers.conv2d(
+                    inputs=pool_1, filters=128, kernel_size=5, padding='same', activation=tf.nn.relu
+                )
+                pool_2 = tf.layers.max_pooling2d(
+                    inputs=conv_2, pool_size=2, strides=2, padding='same'
+                )
 
-            # Densely Connected Layer
-            W_fc1 = _weight_variable([REDUCED_HEIGHT * REDUCED_WIDTH * 128, 1024], name='W_fc1')
-            b_fc1 = _bias_variable([1024], name='b_fc1')
+                conv_3 = tf.layers.conv2d(
+                    inputs=pool_2, filters=256, kernel_size=5, padding='same', activation=tf.nn.relu
+                )
+                pool_3 = tf.layers.max_pooling2d(
+                    inputs=conv_3, pool_size=2, strides=2, padding='same'
+                )
 
-            # Readout Layer
-            W_fc2 = _weight_variable([1024, self._class_num], name='W_fc2')
-            b_fc2 = _bias_variable([self._class_num], name='b_fc2')
+                flatten = tf.layers.flatten(inputs=pool_3)
+                fc = tf.layers.dense(inputs=flatten, units=1024, activation=tf.nn.relu)
 
-            """ Hidden Layer """
-            # First Convolutional Layer
-            h_conv1 = tf.nn.relu(_conv2d(x_image, W_conv1) + b_conv1, name='h_conv1')
-            h_pool1 = _max_pool_2x2(h_conv1, name='h_pool1')
-
-            # Second Convolutional Layer
-            h_conv2 = tf.nn.relu(_conv2d(h_pool1, W_conv2) + b_conv2, name='h_conv2')
-            h_pool2 = _max_pool_2x2(h_conv2, name='h_pool2')
-
-            # Third Convolutional Layer
-            h_conv3 = tf.nn.relu(_conv2d(h_pool2, W_conv3) + b_conv3, name='h_conv3')
-            h_pool3 = _max_pool_2x2(h_conv3, name='h_pool3')
-
-            h_pool_flat = tf.reshape(h_pool3, [-1, REDUCED_HEIGHT * REDUCED_HEIGHT * 128], name='h_pool_flat')
-            h_fc1 = tf.nn.relu(tf.matmul(h_pool_flat, W_fc1) + b_fc1, name='h_fc1')
-
-            # Dropout
-            keep_prob = tf.placeholder(tf.float32, name='keep_prob')
-            h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='h_fc1_drop')
-
-            y_predict = tf.add(tf.matmul(h_fc1_drop, W_fc2), b_fc2, name='y_predict')
+            # Output
+            with tf.variable_scope('Output_Layer') as scope:
+                y_predict = tf.layers.dense(inputs=fc, units=self._label_size, activation=None, name='y_predict')
 
             cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=y_predict))
-            train_step = tf.train.AdamOptimizer(learning_rate=0.001).minimize(cross_entropy)
+            train_step = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
 
-            correct_prediction = tf.equal(tf.argmax(y_predict, 1), tf.argmax(y, 1))
+        with tf.device('/cpu:0'):
+            model_saver = tf.train.Saver()
+
+        # set train count
+        if self._dataset_size <= self._batch_size:
+            train_count = 1
+        else:
+            if (self._dataset_size % self._batch_size) == 0:
+                train_count = int(self._dataset_size / self._batch_size)
+            else:
+                train_count = int(self._dataset_size / self._batch_size) + 1
+
+        # session configure
+        config = tf.ConfigProto(log_device_placement=True)
+        if self._device == 'gpu':
+            config.gpu_options.allow_growth = True
+
+        with tf.Session(config=config) as sess:
+            sess.run(tf.global_variables_initializer())
+            sess.run(tf.local_variables_initializer())
+
+            # optimization
+            for step in range(self._epoch):
+                self._dataset.reset_batch()
+                for i in range(train_count):
+                    batch_x, batch_y = self._dataset.next_batch(self._batch_size)
+                    sess.run(train_step, feed_dict={x: batch_x, y: batch_y})
+
+            # save model
+            par_dir = os.path.split(model_path)[0]
+            if not os.path.exists(par_dir):
+                os.makedirs(par_dir)
+
+            model_saver.save(sess, model_path)
+            self.__load_model = True
+            print("Model save to '{}'".format(model_path))
+
+            tf.reset_default_graph()
+
+    def eval(self, dataset_path, model_path):
+        """
+        Evaluate saved model.
+
+        :param dataset_path: str
+            the path to load the dataset for evaluate.
+        :param model_path: str
+            the path to load the learned model.
+
+        :return: dict
+        """
+        if not isinstance(dataset_path, str):
+            raise TypeError("type of 'dataset_path' must be str.")
+
+        if not isinstance(model_path, str):
+            raise TypeError("type of 'model_path' must be str.")
+
+        self.load_dataset(dataset_path)
+
+        sess = tf.Session()
+
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
+
+        self.load_model(model_path, sess)
+        graph = tf.get_default_graph()
+
+        with tf.device('/{}:0'.format(self._device)):
+            # Input
+            x = graph.get_tensor_by_name('Input_Layer/input_x:0')
+            y = graph.get_tensor_by_name('Input_Layer/input_y:0')
+
+            y_predict = graph.get_tensor_by_name('Output_Layer/y_predict/BiasAdd:0')
+
+            correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_predict, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         with tf.device('/cpu:0'):
             confusion_matrix = tf.confusion_matrix(labels=tf.argmax(y, 1), predictions=tf.argmax(y_predict, 1))
 
-            model_saver = tf.train.Saver()
-
-        # run session
-        self._sess.run(tf.global_variables_initializer())
-        self._sess.run(tf.local_variables_initializer())
-
-        # optimization
-        for _ in range(self._epoch):
-            for i in range(train_count):
-                batch_x, batch_y = self._datasets.train.next_batch(self._batch_size)
-                self._sess.run(train_step, feed_dict={x: batch_x, y: batch_y, keep_prob: 0.8})
-
-        # train
-        train_accuracy = 0
-        for i in range(train_count):
-            batch_x, batch_y = self._datasets.train.next_batch(self._batch_size)
-            train_accuracy += self._sess.run(accuracy, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
-            if i == 0:
-                train_cm = self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+        if self._dataset_size <= self._batch_size:
+            test_count = 1
+        else:
+            if (self._dataset_size % self._batch_size) == 0:
+                test_count = int(self._dataset_size / self._batch_size)
             else:
-                train_cm += self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
-
-        train_accuracy /= train_count
-        train_cm = train_cm.tolist()
+                test_count = int(self._dataset_size / self._batch_size) + 1
 
         # test
-        test_accuracy = 0
+        self._dataset.reset_batch()
         for i in range(test_count):
-            batch_x, batch_y = self._datasets.test.next_batch(self._batch_size)
-            test_accuracy += self._sess.run(accuracy, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+            batch_x, batch_y = self._dataset.next_batch(self._batch_size)
             if i == 0:
-                test_cm = self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+                test_accuracy = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
+                test_cm = sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y})
             else:
-                test_cm += self._sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.0})
+                test_accuracy += sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
+                test_cm += sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y})
 
         test_accuracy /= test_count
         test_cm = test_cm.tolist()
 
-        # save model
-        par_dir = os.path.split(model_save_path)[0]
-        if not os.path.exists(par_dir):
-            os.makedirs(par_dir)
-
-        model_saver.save(self._sess, model_save_path)
-        self.__LOAD_MODEL = True
-        print("Model save to '{}.meta'".format(model_save_path))
-
         tf.reset_default_graph()
+        sess.close()
 
         return {
-            'train': {
-                'accuracy': train_accuracy,
-                'confusion_matrix': train_cm
-            },
-            'test': {
-                'accuracy': test_accuracy,
-                'confusion_matrix': test_cm
-            }
+            'accuracy': test_accuracy,
+            'confusion_matrix': test_cm
         }
 
-    def query(self, image_path, model_path=None):
+    def query(self, image_path, model_path):
         """
         Input images and predict labels.
 
         :param images: array
         :param model_path: str
+
         :return: nothing
         """
-        if not model_path:
-            if not self.__LOAD_MODEL:
-                print('Please Load Model by load_model(path).')
-                return
-        else:
-            if self.load_model(model_path):
-                from PIL import Image
-                import tensorflow as tf
+        if not isinstance(image_path, str):
+            raise TypeError("type of 'image_path' must be str.")
 
-                opened_image = Image.open(image_path).convert(mode='L')
-                width, height = opened_image.size
+        if not isinstance(model_path, str):
+            raise TypeError("type of 'model_path' must be str.")
 
-                image = []
-                for y in range(height):
-                    for x in range(width):
-                        image.append(
-                            opened_image.getpixel((x, y))
-                        )
+        image_width = 48
+        image_height = 48
+        if self._image_mode == 'RGB':
+            image_channel = 3
+        elif self._image_mode == 'L':
+            image_channel = 1
 
-                graph = tf.get_default_graph()
+        image = Image.open(image_path).convert(mode=self._image_mode).resize((image_width, image_height))
+        w, h = image.size
 
-                with tf.device('/{}:0'.format(self._device)):
-                    # Input
-                    x = graph.get_tensor_by_name('input_x:0')
+        pixel_list = list()
+        for y in range(h):
+            for x in range(w):
+                pixel = image.getpixel((x, y))
+                if isinstance(pixel, tuple):
+                    pixel_list += [p for p in pixel]
+                else:
+                    pixel_list.append(pixel)
 
-                    # Dropout
-                    keep_prob = graph.get_tensor_by_name('keep_prob:0')
+        sess = tf.Session()
 
-                    y_conv = graph.get_tensor_by_name('y_predict:0')
-                    predict = tf.argmax(y_conv, 1)
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
 
-                # run session
-                result = self._sess.run(predict, feed_dict={x: image, keep_prob: 1.0})
+        self.load_model(model_path, sess)
+        graph = tf.get_default_graph()
 
-                return result
-            else:
-                return None
+        with tf.device('/{}:0'.format(self._device)):
+            # Input
+            x = graph.get_tensor_by_name('Input_Layer/input_x:0')
+
+            y_predict = graph.get_tensor_by_name('Output_Layer/y_predict/BiasAdd:0')
+
+            predict = tf.argmax(y_predict, 1)
+
+            # run session
+            result = sess.run(predict, feed_dict={x: [pixel_list]})
+
+        sess.close()
+
+        return result
