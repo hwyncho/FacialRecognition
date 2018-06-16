@@ -1,7 +1,7 @@
 """
-Created by 조휘연 on 2017. 08. 24.
-Last updated by 조휘연 on 2017. 11. 23.
-Copyright © 2017년 조휘연. All rights reserved.
+Created by hwyncho on 2017. 08. 24.
+Last updated by hwyncho on 2018. 06. 16.
+Copyright © 2018 hwyncho. All rights reserved.
 ==================================================
 Convert Images to Dataset.
 """
@@ -170,9 +170,11 @@ def main(save_path='./Datasets.bin', shuffle=True, sampling=None):
     f = open(save_path, mode='wb')
 
     if IMAGE_MODE == 'RGB':
-        info = [(IMAGE_HEIGHT * IMAGE_WIDTH * 3), len(label_path_list), len(image_path_list)]
+        info = [(IMAGE_HEIGHT * IMAGE_WIDTH * 3),
+                len(label_path_list), len(image_path_list)]
     elif IMAGE_MODE == 'L':
-        info = [(IMAGE_HEIGHT * IMAGE_WIDTH), len(label_path_list), len(image_path_list)]
+        info = [(IMAGE_HEIGHT * IMAGE_WIDTH),
+                len(label_path_list), len(image_path_list)]
     else:
         raise ValueError("'IMAGE_MODE' must be 'RGB' or 'L'.")
 
@@ -187,7 +189,8 @@ def main(save_path='./Datasets.bin', shuffle=True, sampling=None):
 
         if (w * h) != (IMAGE_HEIGHT * IMAGE_WIDTH):
             raise ValueError(
-                "size of image must be '{0}', but '{1}' is '{2}'.".format(IMAGE_HEIGHT * IMAGE_WIDTH, image, (w * h))
+                "size of image must be '{0}', but '{1}' is '{2}'.".format(
+                    IMAGE_HEIGHT * IMAGE_WIDTH, image, (w * h))
             )
 
         pixel_list = list()

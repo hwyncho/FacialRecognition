@@ -1,7 +1,7 @@
 """
-Created by 조휘연 on 2017. 08. 24.
-Last updated by 조휘연 on 2017. 11. 23.
-Copyright © 2017년 조휘연. All rights reserved.
+Created by hwyncho on 2017. 08. 24.
+Last updated by hwyncho on 2018. 06. 16.
+Copyright © 2018 hwyncho. All rights reserved.
 ==================================================
 Class of Dataset
 """
@@ -11,6 +11,7 @@ import struct
 
 class Dataset:
     """ Dataset class """
+
     def __init__(self, path, one_hot=True):
         """ Dataset constructor """
         self._fp = None
@@ -38,7 +39,8 @@ class Dataset:
             raise TypeError("type of 'path' must be str.")
 
         if not os.path.exists(path):
-            raise FileNotFoundError('The dataset file is not exist from: {}'.format(path))
+            raise FileNotFoundError(
+                'The dataset file is not exist from: {}'.format(path))
 
         self._fp = open(path, mode='rb')
 
