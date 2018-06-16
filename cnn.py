@@ -1,7 +1,7 @@
 """
-Created by 조휘연 on 2017. 08. 24.
-Last updated by 조휘연 on 2017. 11. 24.
-Copyright © 2017년 조휘연. All rights reserved.
+Created by hwyncho on 2017. 08. 24.
+Last updated by hwyncho on 2018. 06. 16.
+Copyright © 2018 hwyncho. All rights reserved.
 ==================================================
 Convolutional Neural Network.
 """
@@ -94,10 +94,12 @@ class Cnn:
         ckpt_file = '{}/checkpoint'.format(par_dir)
 
         if not os.path.exists(meta_file):
-            raise FileNotFoundError('The meta file is not exist from: {}'.format(par_dir))
+            raise FileNotFoundError(
+                'The meta file is not exist from: {}'.format(par_dir))
 
         if not os.path.exists(ckpt_file):
-            raise FileNotFoundError('The checkpoint file is not exist from: {}'.format(par_dir))
+            raise FileNotFoundError(
+                'The checkpoint file is not exist from: {}'.format(par_dir))
 
         self.__load_model = True
         self._model = tf.train.import_meta_graph(meta_file, clear_devices=True)
@@ -162,10 +164,13 @@ class Cnn:
         with tf.device('/{}:0'.format(self._device)):
             # Input
             with tf.variable_scope('Input_Layer') as scope:
-                x = tf.placeholder(tf.float32, shape=[None, self._image_size], name='images')
-                y = tf.placeholder(tf.float32, shape=[None, self._label_size], name='labels')
+                x = tf.placeholder(tf.float32, shape=[
+                                   None, self._image_size], name='images')
+                y = tf.placeholder(tf.float32, shape=[
+                                   None, self._label_size], name='labels')
 
-            x_2d = tf.reshape(x, [-1, image_height, image_width, image_channel], name='images_2d')
+            x_2d = tf.reshape(
+                x, [-1, image_height, image_width, image_channel], name='images_2d')
 
             # Hidden Layers
             with tf.variable_scope('Hidden_Layers') as scope:
@@ -198,14 +203,18 @@ class Cnn:
                 )
 
                 flatten = tf.layers.flatten(inputs=pool_3)
-                fc = tf.layers.dense(inputs=flatten, units=1024, activation=tf.nn.relu)
+                fc = tf.layers.dense(
+                    inputs=flatten, units=1024, activation=tf.nn.relu)
 
             # Output
             with tf.variable_scope('Output_Layer') as scope:
-                y_predict = tf.layers.dense(inputs=fc, units=self._label_size, activation=None, name='y_predict')
+                y_predict = tf.layers.dense(
+                    inputs=fc, units=self._label_size, activation=None, name='y_predict')
 
-            cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=y_predict))
-            train_step = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
+            cross_entropy = tf.reduce_mean(
+                tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=y_predict))
+            train_step = tf.train.AdamOptimizer(
+                learning_rate=learning_rate).minimize(cross_entropy)
 
         with tf.device('/cpu:0'):
             model_saver = tf.train.Saver()
@@ -232,7 +241,8 @@ class Cnn:
             for step in range(self._epoch):
                 self._dataset.reset_batch()
                 for i in range(train_count):
-                    batch_x, batch_y = self._dataset.next_batch(self._batch_size)
+                    batch_x, batch_y = self._dataset.next_batch(
+                        self._batch_size)
                     sess.run(train_step, feed_dict={x: batch_x, y: batch_y})
 
             # save model
@@ -275,16 +285,19 @@ class Cnn:
 
         with tf.device('/{}:0'.format(self._device)):
             # Input
-            x = graph.get_tensor_by_name('Input_Layer/input_x:0')
-            y = graph.get_tensor_by_name('Input_Layer/input_y:0')
+            x = graph.get_tensor_by_name('Input_Layer/images:0')
+            y = graph.get_tensor_by_name('Input_Layer/labels:0')
 
-            y_predict = graph.get_tensor_by_name('Output_Layer/y_predict/BiasAdd:0')
+            y_predict = graph.get_tensor_by_name(
+                'Output_Layer/y_predict/BiasAdd:0')
 
-            correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_predict, 1))
+            correct_prediction = tf.equal(
+                tf.argmax(y, 1), tf.argmax(y_predict, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         with tf.device('/cpu:0'):
-            confusion_matrix = tf.confusion_matrix(labels=tf.argmax(y, 1), predictions=tf.argmax(y_predict, 1))
+            confusion_matrix = tf.confusion_matrix(
+                labels=tf.argmax(y, 1), predictions=tf.argmax(y_predict, 1))
 
         if self._dataset_size <= self._batch_size:
             test_count = 1
@@ -299,11 +312,15 @@ class Cnn:
         for i in range(test_count):
             batch_x, batch_y = self._dataset.next_batch(self._batch_size)
             if i == 0:
-                test_accuracy = sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
-                test_cm = sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y})
+                test_accuracy = sess.run(accuracy, feed_dict={
+                                         x: batch_x, y: batch_y})
+                test_cm = sess.run(confusion_matrix, feed_dict={
+                                   x: batch_x, y: batch_y})
             else:
-                test_accuracy += sess.run(accuracy, feed_dict={x: batch_x, y: batch_y})
-                test_cm += sess.run(confusion_matrix, feed_dict={x: batch_x, y: batch_y})
+                test_accuracy += sess.run(accuracy,
+                                          feed_dict={x: batch_x, y: batch_y})
+                test_cm += sess.run(confusion_matrix,
+                                    feed_dict={x: batch_x, y: batch_y})
 
         test_accuracy /= test_count
         test_cm = test_cm.tolist()
@@ -338,7 +355,8 @@ class Cnn:
         elif self._image_mode == 'L':
             image_channel = 1
 
-        image = Image.open(image_path).convert(mode=self._image_mode).resize((image_width, image_height))
+        image = Image.open(image_path).convert(
+            mode=self._image_mode).resize((image_width, image_height))
         w, h = image.size
 
         pixel_list = list()
@@ -360,9 +378,10 @@ class Cnn:
 
         with tf.device('/{}:0'.format(self._device)):
             # Input
-            x = graph.get_tensor_by_name('Input_Layer/input_x:0')
+            x = graph.get_tensor_by_name('Input_Layer/images:0')
 
-            y_predict = graph.get_tensor_by_name('Output_Layer/y_predict/BiasAdd:0')
+            y_predict = graph.get_tensor_by_name(
+                'Output_Layer/y_predict/BiasAdd:0')
 
             predict = tf.argmax(y_predict, 1)
 
